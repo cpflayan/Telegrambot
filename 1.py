@@ -347,17 +347,43 @@ def list_records(update: Update, context: CallbackContext) -> int:
     # 解析命令参数以获取日期
     command_args = context.args
     if len(command_args) != 1:
-        context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/list 20xx-0x-xx")
+        context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/list 20xx-xx 或 /list 20xx-xx-xx")
         return START
 
     date_to_list = command_args[0]
 
     # 验证日期格式
-    try:
-        datetime.strptime(date_to_list, "%Y-%m-%d")
-    except ValueError:
-        context.bot.send_message(chat_id=chat_id, text="請使用正確的日期格式，例如：20xx-0x-xx")
-        return START
+    if re.match(r'\d{4}-\d{2}-\d{2}', date_to_list):
+        # 如果日期格式为 20xx-xx-xx，列出指定日期的记录
+        cursor.execute('SELECT id, date, time, amount, note FROM transactions WHERE date = ? AND chat_id = ?', (date_to_list, chat_id))
+        records = cursor.fetchall()
+
+        if not records:
+            context.bot.send_message(chat_id=chat_id, text=f"没有找到{date_to_list}的紀錄")
+        else:
+            response_text = f"{date_to_list} 的紀錄：\n"
+            for record in records:
+              #  action_symbol = "+" if record[2] == #"add" else "-"  # 根据交易类型添加正负符号
+            response_text += f"({record[0]}) {record[1]} {record[2]} \n {record[4]} {record[3]}\n"
+            context.bot.send_message(chat_id=chat_id, text=response_text)
+    elif re.match(r'\d{4}-\d{2}', date_to_list):
+        # 如果日期格式为 20xx-xx，列出指定月份的记录
+        cursor.execute('SELECT id, date, time, amount, note FROM transactions WHERE date LIKE ? AND chat_id = ?', (f'{date_to_list}%', chat_id))
+        records = cursor.fetchall()
+
+        if not records:
+            context.bot.send_message(chat_id=chat_id, text=f"没有找到{date_to_list}的紀錄")
+        else:
+            response_text = f"{date_to_list} 的紀錄：\n"
+            for record in records:
+               # action_symbol = "+" if record[1] == #"add" else "-"  # 根据交易类型添加正负符号
+                response_text += f"({record[0]}) {record[1]} {record[2]} \n {record[4]} {record[3]}\n"
+            context.bot.send_message(chat_id=chat_id, text=response_text)
+    else:
+        context.bot.send_message(chat_id=chat_id, text="日期格式不正確，请使用正確的日期格式，例如：20xx-xx 或 20xx-xx-xx")
+
+    return START
+    
 
     # 查询指定日期的 (ID) 时间 金额 数据
     cursor.execute('SELECT id, date, time, amount, note FROM transactions WHERE date = ? AND chat_id = ?', (date_to_list, chat_id))
