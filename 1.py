@@ -364,7 +364,7 @@ def list_records(update: Update, context: CallbackContext) -> int:
             response_text = f"{date_to_list} 的紀錄：\n"
             for record in records:
               #  action_symbol = "+" if record[2] == #"add" else "-"  # 根据交易类型添加正负符号
-            response_text += f"({record[0]}) {record[1]} {record[2]} \n {record[4]} {record[3]}\n"
+                response_text += f"({record[0]}) {record[1]} {record[2]} \n {record[4]} {record[3]}\n"
             context.bot.send_message(chat_id=chat_id, text=response_text)
     elif re.match(r'\d{4}-\d{2}', date_to_list):
         # 如果日期格式为 20xx-xx，列出指定月份的记录
@@ -383,7 +383,7 @@ def list_records(update: Update, context: CallbackContext) -> int:
         context.bot.send_message(chat_id=chat_id, text="日期格式不正確，请使用正確的日期格式，例如：20xx-xx 或 20xx-xx-xx")
 
     return START
-    
+
 
     # 查询指定日期的 (ID) 时间 金额 数据
     cursor.execute('SELECT id, date, time, amount, note FROM transactions WHERE date = ? AND chat_id = ?', (date_to_list, chat_id))
@@ -400,7 +400,7 @@ def list_records(update: Update, context: CallbackContext) -> int:
         #update.message.reply_text(response_text)
 
     return START
-    
+
 def export_to_excel(update: Update, context: CallbackContext) -> int:
     chat_id = update.message.chat.id
     # 解析命令参数以获取年份和月份
@@ -439,7 +439,56 @@ def export_to_excel(update: Update, context: CallbackContext) -> int:
         context.bot.send_document(chat_id=chat_id, document=excel_file)
 
     return START
-    
+
+#顯示目前狀
+
+def show(update: Update, context: CallbackContext) -> int:
+        chat_id = update.message.chat.id
+
+        now = datetime.now()
+
+
+        currentDate = now.strftime("%Y-%m-%d")
+        currentTime = now.strftime("%H:%M:%S")
+
+        current_month_start = datetime(now.year, now.month, 1)
+
+        current_month_end = datetime(now.year, now.month, calendar.monthrange(now.year, now.month)[1])
+
+        today = date.today().strftime("%Y-%m-%d")
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="add" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+
+        add_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="subtract" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        subtract_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="add" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        add_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="subtract" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        subtract_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="add" AND date = ? AND chat_id = ?', (today, chat_id))
+        add_today_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="subtract" AND date = ? AND chat_id = ?', (today, chat_id))
+        subtract_today_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="add" AND date = ? AND chat_id = ?', (today, chat_id))
+        add_today_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="subtract" AND date = ? AND chat_id = ?', (today, chat_id))
+        subtract_today_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="fee" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        fee_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="count" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        last_month_count = cursor.fetchone()[0] or 0
+
+        total = add_total - subtract_total - fee_total + last_month_count
+        context.bot.send_message(chat_id=chat_id, text=f"({currentDate} {currentTime} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total},前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
 # 在main函数中添加新的命令处理器
 
 
@@ -456,6 +505,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler('count', calculate_balance, pass_args=True))
     dispatcher.add_handler(CommandHandler('list', list_records, pass_args=True))
     dispatcher.add_handler(CommandHandler('export', export_to_excel, pass_args=True))
+    dispatcher.add_handler(CommandHandler('show', show))
 
     updater.start_polling()
     updater.idle()
