@@ -489,8 +489,38 @@ def show(update: Update, context: CallbackContext) -> int:
 
         total = add_total - subtract_total - fee_total + last_month_count
         context.bot.send_message(chat_id=chat_id, text=f"({currentDate} {currentTime} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total},前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
-# 在main函数中添加新的命令处理器
+        
+def list_daily_flow(update: Update, context: CallbackContext) -> int:
+    chat_id = update.message.chat.id
 
+    # 解析命令参数以获取日期
+    command_args = context.args
+    if len(command_args) != 1:
+        context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/flow 20xx-xx")
+        return START
+
+    date_to_list = command_args[0]
+
+    # 验证日期格式
+    if not re.match(r'\d{4}-\d{2}', date_to_list):
+        context.bot.send_message(chat_id=chat_id, text="日期格式不正確，請使用正確的日期格式，例如：20xx-xx")
+        return START
+
+    # 查询指定月份每日入金量
+    cursor.execute('SELECT date, SUM(amount) FROM transactions WHERE action="add" AND date LIKE ? AND chat_id = ? GROUP BY date', (f'{date_to_list}%', chat_id))
+    daily_flows = cursor.fetchall()
+
+    if not daily_flows:
+        context.bot.send_message(chat_id=chat_id, text=f"没有找到{date_to_list}的入金紀錄")
+    else:
+        response_text = f"{date_to_list} 的每日入金量列表：\n"
+        for daily_flow in daily_flows:
+            response_text += f"{daily_flow[0]}：{daily_flow[1]} \n"
+        context.bot.send_message(chat_id=chat_id, text=response_text)
+
+    return START
+
+# 在main函数中添加新的命令处理器
 
 # 創建機器人處理程序
 def main() -> None:
@@ -506,7 +536,7 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler('list', list_records, pass_args=True))
     dispatcher.add_handler(CommandHandler('export', export_to_excel, pass_args=True))
     dispatcher.add_handler(CommandHandler('show', show))
-
+    dispatcher.add_handler(CommandHandler('flow', list_daily_flow, pass_args=True))
     updater.start_polling()
     updater.idle()
 
