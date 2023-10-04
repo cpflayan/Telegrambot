@@ -40,7 +40,7 @@ def start(update: Update, context: CallbackContext) -> int:
     return START
 
 # 處理入金
-def add(update: Update, context: CallbackContext) -> int:
+def add(update: Update, context: CallbackContext, amount) -> int:
         now = datetime.now()
         currentDate = now.strftime("%Y-%m-%d")
         currentTime = now.strftime("%H:%M:%S")
@@ -49,8 +49,8 @@ def add(update: Update, context: CallbackContext) -> int:
         today = date.today().strftime("%Y-%m-%d")
 
         chat_id = update.message.chat.id
-
-        amount = int(context.args[0])
+        #amount = int(message_text[3:])
+        #amount = int(context.args[0])
         cursor.execute('INSERT INTO transactions (chat_id, action, amount, date, time, note) VALUES (?, ?, ?, ?, ?, ?)', (chat_id, "add", amount, currentDate, currentTime, "入"))
         conn.commit()
 
@@ -87,12 +87,16 @@ def add(update: Update, context: CallbackContext) -> int:
         cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="count" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
         last_month_count = cursor.fetchone()[0] or 0
 
-        total = add_total - subtract_total - fee_total + last_month_count
-        context.bot.send_message(chat_id=chat_id, text=f"({new_record_id}) {currentDate} {currentTime} \n+{amount} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total},前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="lock" AND chat_id = ?', (chat_id,))
+        lock_total = cursor.fetchone()[0] or 0
+
+
+        total = add_total - subtract_total - fee_total + last_month_count - lock_total
+        context.bot.send_message(chat_id=chat_id, text=f"({new_record_id}) {currentDate} {currentTime} \n+{amount} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total}\n風控:{lock_total}\n前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
         return START
 
 # 處理出金
-def subtract(update: Update, context: CallbackContext) -> int:
+def subtract(update: Update, context: CallbackContext, amount) -> int:
         now = datetime.now()
         currentDate = now.strftime("%Y-%m-%d")
         currentTime = now.strftime("%H:%M:%S")
@@ -102,7 +106,7 @@ def subtract(update: Update, context: CallbackContext) -> int:
 
         chat_id = update.message.chat.id
 
-        amount = int(context.args[0])
+        #amount = int(context.args[0])
 
         cursor.execute('INSERT INTO transactions (chat_id, action, amount, date, time, note) VALUES (?, ?, ?, ?, ?, ?)', (chat_id, "subtract", amount, currentDate, currentTime, "出"))
         conn.commit()
@@ -140,12 +144,17 @@ def subtract(update: Update, context: CallbackContext) -> int:
         cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="count" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
         last_month_count = cursor.fetchone()[0] or 0
 
-        total = add_total - subtract_total - fee_total + last_month_count
-        context.bot.send_message(chat_id=chat_id, text=f"({new_record_id}) {currentDate} {currentTime} \n-{amount} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total},前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="lock" AND chat_id = ?', (chat_id,))
+        lock_total = cursor.fetchone()[0] or 0
+
+
+        total = add_total - subtract_total - fee_total + last_month_count - lock_total
+        context.bot.send_message(chat_id=chat_id, text=f"({new_record_id}) {currentDate} {currentTime} \n-{amount} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total}\n風控:{lock_total}\n前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
         return START
 
+
 #新增手續費
-def add_fee(update: Update, context: CallbackContext) -> int:
+def add_fee(update: Update, context: CallbackContext, amount) -> int:
         chat_id = update.message.chat.id
         now = datetime.now()
         currentDate = now.strftime("%Y-%m-%d")
@@ -156,7 +165,7 @@ def add_fee(update: Update, context: CallbackContext) -> int:
 
         chat_id = update.message.chat.id
 
-        amount = int(context.args[0])  # 假設用户提供金额作為参數
+        #amount = int(context.args[0])  # 假設用户提供金额作為参數
 # 執行 INSERT 操作，插入新紀錄
         cursor.execute('INSERT INTO transactions (chat_id, action, amount, date, time, note) VALUES (?, ?, ?, ?, ?, ?)', (chat_id, "fee", amount, currentDate, currentTime, "手續費"))
         conn.commit()
@@ -198,9 +207,14 @@ def add_fee(update: Update, context: CallbackContext) -> int:
         cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="count" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
         last_month_count = cursor.fetchone()[0] or 0
 
-        total = add_total - subtract_total - fee_total + last_month_count
-        context.bot.send_message(chat_id=chat_id, text=f"({new_record_id}) {currentDate} {currentTime} \nfee:{amount} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total},前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="lock" AND chat_id = ?', (chat_id,))
+        lock_total = cursor.fetchone()[0] or 0
+
+
+        total = add_total - subtract_total - fee_total + last_month_count - lock_total
+        context.bot.send_message(chat_id=chat_id, text=f"({new_record_id}) {currentDate} {currentTime} \n手續費:{amount} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total}\n風控:{lock_total}\n前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
         return START
+
 
 #計算總額
 def calculate_balance(update: Update, context: CallbackContext) -> int:
@@ -260,7 +274,7 @@ def calculate_balance(update: Update, context: CallbackContext) -> int:
 
         cursor.execute('INSERT INTO transactions (chat_id, action, amount, date, time, note) VALUES (?, ?, ?, ?, ?, ?)', (chat_id, "count", balance, currentDate, currentTime, "上月結算"))
         conn.commit()
-        context.bot.send_message(chat_id=chat_id, text=f"{previous_month_formatted} 結餘：{last_month_count}\n{start_date_formatted} 共{transaction_count}筆資料,總計:{total_month}\n{start_date_formatted} 手續費:{fee_total}\n{start_date_formatted} 月計-月計手續費+前期結餘,總結算:{balance}\n成功新增到月底結餘")
+        context.bot.send_message(chat_id=chat_id, text=f"{previous_month_formatted} 結餘：{last_month_count}\n{start_date_formatted} 共{transaction_count}筆資料,總計:{total_month}\n{start_date_formatted} 手續費:{fee_total}\n{start_date_formatted} 月計- 月計手續費+前期結餘,總結算:{balance}\n成功新增到月底結餘")
 
     else:
         # 如果參數不包含 "record"，執行默認的邏輯並將數據寫入數據庫
@@ -306,24 +320,27 @@ def calculate_balance(update: Update, context: CallbackContext) -> int:
         cursor.execute('SELECT COUNT(*) FROM transactions WHERE (action="add" OR action="subtract") AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, start_date, end_date))
         transaction_count = cursor.fetchone()[0] or 0
 
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="lock" AND chat_id = ?', (chat_id,))
+        lock_total = cursor.fetchone()[0] or 0
+
         # 計算结算
         total_month = add_total - subtract_total
         balance = add_total - subtract_total - fee_total + last_month_count
 
-        context.bot.send_message(chat_id=chat_id, text=f"{previous_month_formatted} 結餘：{last_month_count}\n{start_date_formatted} 共{transaction_count}筆資料,總計:{total_month}\n{start_date_formatted} 手續費:{fee_total}\n{start_date_formatted} 月計-月計手續費+前期結餘,總結算:{balance}")
+        context.bot.send_message(chat_id=chat_id, text=f"{previous_month_formatted} 結餘：{last_month_count}\n{start_date_formatted} 共{transaction_count}筆資料,總計:{total_month}\n{start_date_formatted} 手續費:{fee_total}\n{start_date_formatted} 月計-月計手續費+前期結餘-風控,總結算:{balance}")
     return START
 
-def delete_records(update: Update, context: CallbackContext) -> int:
+def delete_records(update: Update, context: CallbackContext, id_to_delete, date_to_delete) -> int:
     chat_id = update.message.chat.id
 
     # 解析命令参數以獲取ID和日期
-    command_args = context.args
-    if len(command_args) != 2:
-        context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/del id 20xx-9-xx")
-        return START
+    #command_args = context.args
+    #if len(command_args) != 2:
+    #    context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/del id 20xx-9-xx")
+    #    return START
 
-    id_to_delete = command_args[0]
-    date_to_delete = command_args[1]
+    #id_to_delete = command_args[0]
+    #date_to_delete = command_args[1]
 
     # 驗證日期格式
     try:
@@ -487,9 +504,16 @@ def show(update: Update, context: CallbackContext) -> int:
         cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="count" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
         last_month_count = cursor.fetchone()[0] or 0
 
-        total = add_total - subtract_total - fee_total + last_month_count
-        context.bot.send_message(chat_id=chat_id, text=f"{currentDate} {currentTime} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total},前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
-        
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="lock" AND chat_id = ?', (chat_id,))
+        lock_total = cursor.fetchone()[0] or 0
+
+
+        total = add_total - subtract_total - fee_total + last_month_count - lock_total
+
+        context.bot.send_message(chat_id=chat_id, text=f"{currentDate} {currentTime} \n\n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total}\n風控:{lock_total}\n前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
+        return START
+
+
 def list_daily_flow(update: Update, context: CallbackContext) -> int:
     chat_id = update.message.chat.id
 
@@ -520,23 +544,125 @@ def list_daily_flow(update: Update, context: CallbackContext) -> int:
 
     return START
 
+def lock(update: Update, context: CallbackContext) -> int:
+        now = datetime.now()
+        currentDate = now.strftime("%Y-%m-%d")
+        currentTime = now.strftime("%H:%M:%S")
+        current_month_start = date(now.year, now.month, 1)
+        current_month_end = date(now.year, now.month, calendar.monthrange(now.year, now.month)[1])
+        today = date.today().strftime("%Y-%m-%d")
+
+        chat_id = update.message.chat.id
+
+        amount = int(context.args[0])
+        cursor.execute('INSERT INTO transactions (chat_id, action, amount, date, time, note) VALUES (?, ?, ?, ?, ?, ?)', (chat_id, "lock", amount, currentDate, currentTime, "風控"))
+        conn.commit()
+
+        # 获取刚插入记录的 ID
+        new_record_id = cursor.lastrowid
+
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="add" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        add_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="subtract" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        subtract_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="add" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        add_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="subtract" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        subtract_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="add" AND date = ? AND chat_id = ?', (today, chat_id))
+        add_today_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="subtract" AND date = ? AND chat_id = ?', (today, chat_id))
+        subtract_today_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="add" AND date = ? AND chat_id = ?', (today, chat_id))
+        add_today_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT COUNT(*) FROM transactions WHERE action="subtract" AND date = ? AND chat_id = ?', (today, chat_id))
+        subtract_today_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="fee" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        fee_total = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="count" AND chat_id = ? AND date BETWEEN ? AND ?', (chat_id, current_month_start, current_month_end))
+        last_month_count = cursor.fetchone()[0] or 0
+
+        cursor.execute('SELECT SUM(amount) FROM transactions WHERE action="lock" AND chat_id = ?', (chat_id,))
+        lock_total = cursor.fetchone()[0] or 0
+
+
+        total = add_total - subtract_total - fee_total + last_month_count - lock_total
+        context.bot.send_message(chat_id=chat_id, text=f"({new_record_id}) {currentDate} {currentTime} \n風控{amount} \n\n------------------------------------------------\n本日:\n入{add_today_count}筆:{add_today_total},出{subtract_today_count}筆:{subtract_today_total}\n本月:\n入{add_count}筆:{add_total},出{subtract_count}筆:{subtract_total}\n手續費月計:{fee_total}\n風控:{lock_total}\n前期結餘:{last_month_count}\n總計:{total}\n(月計-月計手續費+前期結餘)")
+        return START
+
+def handle_custom_command(update, context):
+    # 获取消息文本
+    message_text = update.message.text
+    command_args = message_text.split()
+    # 检查消息是否以 '/+ 数字' 格式开头
+    if message_text.startswith('/+ '):
+        try:
+            # 提取数字部分并转换为整数
+            number = int(message_text[3:])
+            # 调用 add 函数并传递数字作为参数
+            add(update, context, number)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/+ 数字")
+    elif message_text.startswith('/- '):
+        try:
+            # 提取数字部分并转换为整数
+            number = int(message_text[3:])
+            # 调用 add 函数并传递数字作为参数
+            subtract(update, context, number)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/- 數字")
+    elif message_text.startswith('/手續費 '):
+        try:
+            # 提取数字部分并转换为整数
+            number = int(message_text[5:])
+            # 调用 add 函数并传递数字作为参数
+            add_fee(update, context, number)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/手續費 數字")
+    elif message_text.startswith('/刪除 '):
+        try:
+            # 提取数字部分并转换为整数
+            id_to_delete = command_args[1]
+            date_to_delete = command_args[2]
+            # 调用 add 函数并传递数字作为参数
+            delete_records(update, context, id_to_delete, date_to_delete)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/刪除 編號 日期(/刪除30 2023-01-01)")
+
+
 # 在main函数中添加新的命令处理器
 
 # 創建機器人處理程序
 def main() -> None:
-    updater = Updater(token='5756194491:AAFbZ0U2ZL1N4D_vlCoAU5tng7rHA_i13wg', use_context=True)
+    updater = Updater(token='5756194491:AAEMuWxIfZHatlgxmMLL_Se4uwnebQr1O94', use_context=True)
     dispatcher = updater.dispatcher
 
+    updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_custom_command))
     dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(CommandHandler('a', add, pass_args=True))
-    dispatcher.add_handler(CommandHandler('b', subtract, pass_args=True))
-    dispatcher.add_handler(CommandHandler('fee', add_fee, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('a', add, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('b', subtract, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('fee', add_fee, pass_args=True))
     dispatcher.add_handler(CommandHandler('del', delete_records, pass_args=True))
     dispatcher.add_handler(CommandHandler('count', calculate_balance, pass_args=True))
     dispatcher.add_handler(CommandHandler('list', list_records, pass_args=True))
     dispatcher.add_handler(CommandHandler('export', export_to_excel, pass_args=True))
     dispatcher.add_handler(CommandHandler('show', show))
     dispatcher.add_handler(CommandHandler('flow', list_daily_flow, pass_args=True))
+    dispatcher.add_handler(CommandHandler('lock', lock, pass_args=True))
+    dispatcher.add_handler(CommandHandler('handle', handle_custom_command))
     updater.start_polling()
     updater.idle()
 
