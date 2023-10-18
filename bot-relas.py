@@ -36,7 +36,7 @@ conn.commit()
 
 # 啟動命令處理器
 def start(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("歡迎使用入/出機器人！")
+    update.message.reply_text("/+  數字\n/-  數字\n/手續費  數字\n/刪除  編號  日期(/刪除 30 2023-01-01)\n/風控  數字\n/顯示\n/流量  日期(/流量 2023-01-01 or 2023-01)\n/列表  日期(/列表 2023-01-01 or 2023-01)\n/匯出  日期(/匯出 2023-01-01 or 2023-01)\n/結算  日期(/結算 2023-01)\n          　　結算並記錄 (/結算 2023-01record )")
     return START
 
 # 處理入金
@@ -217,15 +217,15 @@ def add_fee(update: Update, context: CallbackContext, amount) -> int:
 
 
 #計算總額
-def calculate_balance(update: Update, context: CallbackContext) -> int:
+def calculate_balance(update: Update, context: CallbackContext, date_str) -> int:
     chat_id = update.message.chat.id
     # 解析命令参數以獲取年份和月份
-    command_args = context.args
-    if len(command_args) != 1:
-        context.bot.send_message(chat_id=chat_id, text="請提供正確的日期格式，例如：20xx-8")
-        return START
+    #command_args = context.args
+    #if len(command_args) != 1:
+    #    context.bot.send_message(chat_id=chat_id, text="請提供正確的日期格式，例如：20xx-8")
+    #    return START
 
-    date_str = command_args[0]
+    #date_str = command_args[0]
     if date_str.endswith("record"):
         date_str_without_record = date_str[:-len("record")]
         match = re.match(r'(\d{4})-(\d{1,2})', date_str_without_record)
@@ -358,16 +358,16 @@ def delete_records(update: Update, context: CallbackContext, id_to_delete, date_
 
 
 # 新的命令处理器，用于列出指定日期的 (ID) 时间 金额 数据
-def list_records(update: Update, context: CallbackContext) -> int:
+def list_records(update: Update, context: CallbackContext, date_to_list) -> int:
     chat_id = update.message.chat.id
 
     # 解析命令参数以获取日期
-    command_args = context.args
-    if len(command_args) != 1:
-        context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/list 20xx-xx 或 /list 20xx-xx-xx")
-        return START
+    #command_args = context.args
+    #if len(command_args) != 1:
+    #    context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/list 20xx-xx 或 /list 20xx-xx-xx")
+    #    return START
 
-    date_to_list = command_args[0]
+    #date_to_list = command_args[0]
 
     # 验证日期格式
     if re.match(r'\d{4}-\d{2}-\d{2}', date_to_list):
@@ -418,15 +418,15 @@ def list_records(update: Update, context: CallbackContext) -> int:
 
     return START
 
-def export_to_excel(update: Update, context: CallbackContext) -> int:
+def export_to_excel(update: Update, context: CallbackContext, date_str) -> int:
     chat_id = update.message.chat.id
     # 解析命令参数以获取年份和月份
-    command_args = context.args
-    if len(command_args) != 1:
-        context.bot.send_message(chat_id=chat_id, text="请提供正确的日期格式，例如：20xx-xx")
-        return START
+    #command_args = context.args
+    #if len(command_args) != 1:
+    #    context.bot.send_message(chat_id=chat_id, text="请提供正确的日期格式，例如：20xx-xx")
+    #    return START
 
-    date_str = command_args[0]
+    #date_str = command_args[0]
 
     # 验证日期格式
     if not re.match(r'\d{4}-\d{2}', date_str):
@@ -514,16 +514,16 @@ def show(update: Update, context: CallbackContext) -> int:
         return START
 
 
-def list_daily_flow(update: Update, context: CallbackContext) -> int:
+def list_daily_flow(update: Update, context: CallbackContext, date_to_list) -> int:
     chat_id = update.message.chat.id
 
     # 解析命令参数以获取日期
-    command_args = context.args
-    if len(command_args) != 1:
-        context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/flow 20xx-xx")
-        return START
+    #command_args = context.args
+    #if len(command_args) != 1:
+    #    context.bot.send_message(chat_id=chat_id, text="請提供正確的命令格式，例如：/flow 20xx-xx")
+    #    return START
 
-    date_to_list = command_args[0]
+    #date_to_list = command_args[0]
 
     # 验证日期格式
     if not re.match(r'\d{4}-\d{2}', date_to_list):
@@ -544,7 +544,7 @@ def list_daily_flow(update: Update, context: CallbackContext) -> int:
 
     return START
 
-def lock(update: Update, context: CallbackContext) -> int:
+def lock(update: Update, context: CallbackContext, amount) -> int:
         now = datetime.now()
         currentDate = now.strftime("%Y-%m-%d")
         currentTime = now.strftime("%H:%M:%S")
@@ -554,7 +554,7 @@ def lock(update: Update, context: CallbackContext) -> int:
 
         chat_id = update.message.chat.id
 
-        amount = int(context.args[0])
+        #amount = int(context.args[0])
         cursor.execute('INSERT INTO transactions (chat_id, action, amount, date, time, note) VALUES (?, ?, ?, ?, ?, ?)', (chat_id, "lock", amount, currentDate, currentTime, "風控"))
         conn.commit()
 
@@ -612,7 +612,7 @@ def handle_custom_command(update, context):
             add(update, context, number)
         except ValueError:
             # 如果提取的部分不是有效的数字，可以进行错误处理
-            update.message.reply_text("/+ 数字")
+            update.message.reply_text("/+ 數字")
     elif message_text.startswith('/- '):
         try:
             # 提取数字部分并转换为整数
@@ -622,7 +622,7 @@ def handle_custom_command(update, context):
         except ValueError:
             # 如果提取的部分不是有效的数字，可以进行错误处理
             update.message.reply_text("/- 數字")
-    elif message_text.startswith('/手續費 '):
+    elif message_text.startswith('/手續費 ') or message_text.startswith('/手续费 '):
         try:
             # 提取数字部分并转换为整数
             number = int(message_text[5:])
@@ -631,7 +631,7 @@ def handle_custom_command(update, context):
         except ValueError:
             # 如果提取的部分不是有效的数字，可以进行错误处理
             update.message.reply_text("/手續費 數字")
-    elif message_text.startswith('/刪除 '):
+    elif message_text.startswith('/刪除 ') or message_text.startswith('/删除 '):
         try:
             # 提取数字部分并转换为整数
             id_to_delete = command_args[1]
@@ -641,28 +641,80 @@ def handle_custom_command(update, context):
         except ValueError:
             # 如果提取的部分不是有效的数字，可以进行错误处理
             update.message.reply_text("/刪除 編號 日期(/刪除30 2023-01-01)")
+    elif message_text.startswith('/風控 ') or message_text.startswith('/风控 '):
+        try:
+            # 提取数字部分并转换为整数
+            number = int(message_text[4:])
+            # 调用 add 函数并传递数字作为参数
+            lock(update, context, number)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/風控 數字")
+    elif message_text.startswith('/流量 ') or message_text.startswith('/流量 '):
+        try:
+            # 提取数字部分并转换为整数
+            date_for_flow = command_args[1]
+            # 调用 add 函数并传递数字作为参数
+            list_daily_flow(update, context, date_for_flow)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/流量  日期(/流量 2023-01-01 or 2023-01)")
+    elif message_text.startswith('/列表 ') or message_text.startswith('/列表 '):
+        try:
+            # 提取数字部分并转换为整数
+            date_to_list = command_args[1]
+            # 调用 add 函数并传递数字作为参数
+            list_records(update, context, date_to_list)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/列表  日期(/列表 2023-01-01 or 2023-01)")
+    elif message_text.startswith('/匯出 ') or message_text.startswith('/汇出 '):
+        try:
+            # 提取数字部分并转换为整数
+            date_to_export = command_args[1]
+            # 调用 add 函数并传递数字作为参数
+            export_to_excel(update, context, date_to_export)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/匯出  日期(/匯出 2023-01-01 or 2023-01)")
+    elif message_text.startswith('/結算 ') or message_text.startswith('/结算 '):
+        try:
+            # 提取数字部分并转换为整数
+            monuth_to_count = command_args[1]
+            # 调用 add 函数并传递数字作为参数
+            calculate_balance(update, context, monuth_to_count)
+        except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            update.message.reply_text("/結算  日期(/結算 2023-01 or /結算 2023-01record )")
+    elif message_text.startswith('/顯示')or message_text.startswith('/显示'):
+        #try:
+            # 调用 add 函数并传递数字作为参数
+            show(update, context)
+        #except ValueError:
+            # 如果提取的部分不是有效的数字，可以进行错误处理
+            #update.message.reply_text("/顯示")
 
 
 # 在main函数中添加新的命令处理器
 
 # 創建機器人處理程序
 def main() -> None:
-    updater = Updater(token='5756194491:AAEMuWxIfZHatlgxmMLL_Se4uwnebQr1O94', use_context=True)
+    updater = Updater(token='6595335812:AAHMPUFAKw6I3FHeSTX6bHL0QPST79CXB3U', use_context=True)
     dispatcher = updater.dispatcher
 
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_custom_command))
-    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(CommandHandler('help', start))
     #dispatcher.add_handler(CommandHandler('a', add, pass_args=True))
     #dispatcher.add_handler(CommandHandler('b', subtract, pass_args=True))
     #dispatcher.add_handler(CommandHandler('fee', add_fee, pass_args=True))
-    dispatcher.add_handler(CommandHandler('del', delete_records, pass_args=True))
-    dispatcher.add_handler(CommandHandler('count', calculate_balance, pass_args=True))
-    dispatcher.add_handler(CommandHandler('list', list_records, pass_args=True))
-    dispatcher.add_handler(CommandHandler('export', export_to_excel, pass_args=True))
-    dispatcher.add_handler(CommandHandler('show', show))
-    dispatcher.add_handler(CommandHandler('flow', list_daily_flow, pass_args=True))
-    dispatcher.add_handler(CommandHandler('lock', lock, pass_args=True))
-    dispatcher.add_handler(CommandHandler('handle', handle_custom_command))
+    #dispatcher.add_handler(CommandHandler('del', delete_records, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('count', calculate_balance, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('list', list_records, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('export', export_to_excel, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('show', show))
+    #dispatcher.add_handler(CommandHandler('flow', list_daily_flow, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('lock', lock, pass_args=True))
+    #dispatcher.add_handler(CommandHandler('handle', handle_custom_command))
     updater.start_polling()
     updater.idle()
 
