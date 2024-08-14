@@ -24,7 +24,7 @@ cursor.execute('''
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         chat_id INTEGER,
         action TEXT,
-        amount INTEGER,
+        amount REAL,
         date DATE,
         time TIME,
         note TEXT
@@ -607,7 +607,7 @@ def handle_custom_command(update, context):
     if message_text.startswith('/+ '):
         try:
             # 提取数字部分并转换为整数
-            number = int(message_text[3:])
+            number = float(message_text[3:])
             # 调用 add 函数并传递数字作为参数
             add(update, context, number)
         except ValueError:
@@ -616,7 +616,7 @@ def handle_custom_command(update, context):
     elif message_text.startswith('/- '):
         try:
             # 提取数字部分并转换为整数
-            number = int(message_text[3:])
+            number = float(message_text[3:])
             # 调用 add 函数并传递数字作为参数
             subtract(update, context, number)
         except ValueError:
@@ -625,7 +625,7 @@ def handle_custom_command(update, context):
     elif message_text.startswith('/手續費 ') or message_text.startswith('/手续费 '):
         try:
             # 提取数字部分并转换为整数
-            number = int(message_text[5:])
+            number = float(message_text[5:])
             # 调用 add 函数并传递数字作为参数
             add_fee(update, context, number)
         except ValueError:
@@ -644,7 +644,7 @@ def handle_custom_command(update, context):
     elif message_text.startswith('/風控 ') or message_text.startswith('/风控 '):
         try:
             # 提取数字部分并转换为整数
-            number = int(message_text[4:])
+            number = float(message_text[4:])
             # 调用 add 函数并传递数字作为参数
             lock(update, context, number)
         except ValueError:
