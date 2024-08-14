@@ -699,7 +699,7 @@ def handle_custom_command(update, context):
 
 # 創建機器人處理程序
 def main() -> None:
-    updater = Updater(token='6595335812:AAHMPUFAKw6I3FHeSTX6bHL0QPST79CXB3U', use_context=True)
+    updater = Updater(token='7156479012:AAGtW4jACcfLFtkRhb66PkcJnVAYA9zFW9s', use_context=True)
     dispatcher = updater.dispatcher
 
     updater.dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_custom_command))
