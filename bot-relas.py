@@ -13,7 +13,16 @@ logger = logging.getLogger(__name__)
 
 # 定義不同的狀態
 START, ADD, SUBTRACT = range(3)
-
+# 授權群組 ID 清單
+AUTHORIZED_GROUPS = [
+    -1003459064535,
+    -1003264583451,
+    -1002499646527,
+    -1002488141411,
+    -1002450099980,
+    -4528829971,
+    -4938090905
+]
 # 建立數據庫連接
 conn = sqlite3.connect('bank.db', check_same_thread = False)
 cursor = conn.cursor()
@@ -720,3 +729,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+
