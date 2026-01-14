@@ -9,8 +9,15 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 def handle_custom_command(update, context):
     if not update.message or not update.message.text: return
     chat_id = update.effective_chat.id
-    if chat_id not in AUTHORIZED_GROUPS: return
-    
+    chat_title = update.effective_chat.title
+    # --- 1. 權限檢查開始 ---
+    if chat_id not in AUTHORIZED_GROUPS:
+        # 在伺服器後台印出 ID，方便管理者獲取正確的群組 ID 填入 config.py
+        print(f"⚠️ 拒絕存取 - 群組: {chat_title} (ID: {chat_id})")
+        # 如果需要讓使用者知道沒權限，可以取消下行註解
+        update.message.reply_text("未獲得授權，請聯繫管理員。")
+        return 
+    # --- 權限檢查結束 ---
     msg = update.message.text
     args = msg.split()
     
