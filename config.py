@@ -5,5 +5,5 @@ AUTHORIZED_GROUPS = [
 ]
 
 # 機器人 Token
-BOT_TOKEN = '7535191866:AAGjgMcM-q0d7gkyj46mY5NvDCW0aXULnH4'
+BOT_TOKEN = ''
 DB_NAME = 'bank.db'
