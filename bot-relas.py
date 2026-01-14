@@ -609,6 +609,11 @@ def lock(update: Update, context: CallbackContext, amount) -> int:
         return START
 
 def handle_custom_command(update, context):
+    chat_id = update.effective_chat.id
+    if chat_id not in AUTHORIZED_GROUPS:
+        # 如果不是授權群組，直接無視或回覆訊息
+        # update.message.reply_text("未授權群組，請聯繫管理員。")
+        return
     # 获取消息文本
     message_text = update.message.text
     command_args = message_text.split()
@@ -729,4 +734,5 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+
 
