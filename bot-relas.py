@@ -14,6 +14,16 @@ logger = logging.getLogger(__name__)
 # 定義不同的狀態
 START, ADD, SUBTRACT = range(3)
 
+# 授權群組 ID 清單
+AUTHORIZED_GROUPS = [
+    -1003459064535,
+    -1003264583451,
+    -1002499646527,
+    -1002488141411,
+    -1002450099980,
+    -4528829971,
+    -4938090905
+]
 # 建立數據庫連接
 conn = sqlite3.connect('bank.db', check_same_thread = False)
 cursor = conn.cursor()
@@ -600,6 +610,13 @@ def lock(update: Update, context: CallbackContext, amount) -> int:
         return START
 
 def handle_custom_command(update, context):
+    chat_id = update.message.chat.id
+
+    # --- 權限檢查開始 ---
+    if chat_id not in AUTHORIZED_GROUPS:
+        update.message.reply_text("未獲得授權，請聯繫管理員。")
+        return # 直接結束，不執行後續指令
+    # --- 權限檢查結束 ---
     # 获取消息文本
     message_text = update.message.text
     command_args = message_text.split()
