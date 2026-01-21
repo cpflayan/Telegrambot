@@ -4,13 +4,19 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton,InlineKeyboardB
 from telegram.ext import CallbackContext
 from database import get_conn, get_summary_report
 
-# 定義常駐選單，方便各個函數調用
-main_menu_markup = ReplyKeyboardMarkup(
-    [['💰 入金 (+)', '💸 出金 (-)', '📊 顯示統計'], ['🪙 手續費', '🚨 風控', '❌ 刪除'],['🔢 結算預覽', '⌨️ 結算計入', '❓ 幫助']],
-    resize_keyboard=True,
-    one_time_keyboard=False,
-    is_persistent=True# 確保不會點完就消失
-)
+def get_main_inline_menu():
+    # 建立兩排按鈕
+    keyboard = [
+        [
+            InlineKeyboardButton("💰 入金 (+)", callback_data='add'),
+            InlineKeyboardButton("💸 出金 (-)", callback_data='sub')
+        ],
+        [
+            InlineKeyboardButton("📊 顯示統計", callback_data='show'),
+            InlineKeyboardButton("⚙️ 管理功能", callback_data='manage')
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)
 
 def start(update: Update, context: CallbackContext):
     menu = ("指令使用方式    \n/+  數字\n/-  數字\n/手續費  數字\n/刪除  編號  日期\n/風控  數字\n"
@@ -22,7 +28,7 @@ def start(update: Update, context: CallbackContext):
         )
     update.message.reply_text(
         '🏦 記帳系統：選單已開啟。\n您可以點擊下方按鈕或直接輸入指令。', 
-        reply_markup=main_menu_markup
+        reply_markup=get_main_inline_menu()
     )
 
 def record_transaction(chat_id, action, amount, note):
