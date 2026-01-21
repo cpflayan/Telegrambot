@@ -8,7 +8,8 @@ from database import get_conn, get_summary_report
 main_menu_markup = ReplyKeyboardMarkup(
     [['💰 入金 (+)', '💸 出金 (-)', '📊 顯示統計'], ['🪙 手續費', '🚨 風控', '❌ 刪除'],['🔢 結算預覽', '⌨️ 結算計入', '❓ 幫助']],
     resize_keyboard=True,
-    one_time_keyboard=False  # 確保不會點完就消失
+    one_time_keyboard=False,
+    is_persistent=True# 確保不會點完就消失
 )
 
 def start(update: Update, context: CallbackContext):
@@ -22,7 +23,7 @@ def start(update: Update, context: CallbackContext):
         '💾 版本v1.6.0升級公告：\n1.結算功能優化,指令：/結算 改為預覽不寫入、新增指令：/結算計入 結算並寫入紀錄。\n2.新增按鈕功能，互動式操作更方便。'
         )
     update.message.reply_text(
-        '🏦 記帳系統：選單已開啟。\n您可以點擊下方按鈕或直接輸入指令。',
+        '🏦 記帳系統：選單已開啟。\n您可以點擊下方按鈕或直接輸入指令。', 
         reply_markup=main_menu_markup
     )
 
@@ -41,27 +42,27 @@ def record_transaction(chat_id, action, amount, note):
 def add(update, context, amount):
     chat_id = update.message.chat.id
     new_id, d, t = record_transaction(chat_id, "add", amount, "入")
-    update.message.reply_text(f"({new_id}) {d} {t} \n+{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}", reply_markup=main_menu_markup)
+    update.message.reply_text(f"({new_id}) {d} {t} \n+{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}")
 
 def subtract(update, context, amount):
     chat_id = update.message.chat.id
     new_id, d, t = record_transaction(chat_id, "subtract", amount, "出")
-    update.message.reply_text(f"({new_id}) {d} {t} \n-{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}", reply_markup=main_menu_markup)
+    update.message.reply_text(f"({new_id}) {d} {t} \n-{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}")
 
 def add_fee(update, context, amount):
     chat_id = update.message.chat.id
     new_id, d, t = record_transaction(chat_id, "fee", amount, "手續費")
-    update.message.reply_text(f"({new_id}) {d} {t} \n手續費:{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}", reply_markup=main_menu_markup)
+    update.message.reply_text(f"({new_id}) {d} {t} \n手續費:{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}")
 
 def lock(update, context, amount):
     chat_id = update.message.chat.id
     new_id, d, t = record_transaction(chat_id, "lock", amount, "風控")
-    update.message.reply_text(f"({new_id}) {d} {t} \n風控:{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}", reply_markup=main_menu_markup)
+    update.message.reply_text(f"({new_id}) {d} {t} \n風控:{amount}\n\n{'-'*30}\n{get_summary_report(chat_id)}")
 
 def show(update, context):
     chat_id = update.message.chat.id
     now = datetime.now()
-    update.message.reply_text(f"{now.strftime('%Y-%m-%d %H:%M:%S')}\n\n{'-'*30}\n{get_summary_report(chat_id)}", reply_markup=main_menu_markup)
+    update.message.reply_text(f"{now.strftime('%Y-%m-%d %H:%M:%S')}\n\n{'-'*30}\n{get_summary_report(chat_id)}")
 
 def delete_records(update, context, id_to_delete, date_to_delete):
     chat_id = update.message.chat.id
@@ -75,7 +76,7 @@ def delete_records(update, context, id_to_delete, date_to_delete):
     conn.commit()
     conn.close()
     # 刪除完後，記得帶回常駐選單！
-    update.message.reply_text(msg, reply_markup=main_menu_markup)
+    update.message.reply_text(msg)
 
 def list_records(update, context, date_str):
     chat_id = update.message.chat.id
@@ -90,7 +91,7 @@ def list_records(update, context, date_str):
         update.message.reply_text("查無資料")
         return
     res = f"{date_str} 紀錄：\n" + "".join([f"({r[0]}) {r[1]} {r[2]}\n{r[4]} {r[3]}\n" for r in records])
-    update.message.reply_text(res, reply_markup=main_menu_markup)
+    update.message.reply_text(res)
 
 def export_to_excel(update, context, date_str):
     chat_id = update.message.chat.id
@@ -106,7 +107,7 @@ def export_to_excel(update, context, date_str):
     df.to_excel(file_name, index=False)
     with open(file_name, 'rb') as f:
         context.bot.send_document(chat_id=chat_id, document=f)
-    update.message.reply_text(res, reply_markup=main_menu_markup)
+    update.message.reply_text(res)
 
 
 def list_daily_flow(update, context, date_str):
@@ -119,7 +120,7 @@ def list_daily_flow(update, context, date_str):
         update.message.reply_text("查無入金紀錄")
         return
     res = f"{date_str} 每日入金：\n" + "".join([f"{f[0]}：{f[1]}\n" for f in flows])
-    update.message.reply_text(res, reply_markup=main_menu_markup)
+    update.message.reply_text(res)
 
 def calculate_balance(update, context, date_str):
     chat_id = update.message.chat.id
@@ -154,7 +155,7 @@ def calculate_balance(update, context, date_str):
     msg += f"🧧 手續費總計：{fee_t}\n"
     msg += f"💰 最終結轉餘額：{balance}\n"
     msg += f"📊 處理單據：{count} 筆"
-    update.message.reply_text(msg, reply_markup=main_menu_markup)
+    update.message.reply_text(msg)
 
 def calculate_balance_write(update, context, date_str):
     chat_id = update.message.chat.id
@@ -205,5 +206,5 @@ def calculate_balance_write(update, context, date_str):
     msg += f"🧧 手續費總計：{fee_t}\n"
     msg += f"💰 最終結轉餘額：{balance}\n"
     msg += f"📊 處理單據：{count} 筆"
-    update.message.reply_text(msg, reply_markup=main_menu_markup)
+    update.message.reply_text(msg)
 
